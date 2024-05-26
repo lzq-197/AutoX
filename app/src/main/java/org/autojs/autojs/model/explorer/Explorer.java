@@ -90,7 +90,6 @@ public class Explorer {
         mEventBus.post(new ExplorerChangeEvent(parent, CREATE, item, item));
     }
 
-    @SuppressWarnings("unchecked")
     public void refreshAll() {
         if (mExplorerPageLruCache != null)
             mExplorerPageLruCache.evictAll();

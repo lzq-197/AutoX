@@ -73,7 +73,7 @@ public abstract class Task {
             } else {
                 assert mIntentTask != null;
                 Integer desc = ACTION_DESC_MAP.get(mIntentTask.getAction());
-                if(desc != null){
+                if (desc != null) {
                     return GlobalAppContext.getString(desc);
                 }
                 return mIntentTask.getAction();
@@ -117,7 +117,7 @@ public abstract class Task {
         }
 
         public long getId() {
-            if(mTimedTask != null)
+            if (mTimedTask != null)
                 return mTimedTask.getId();
             return mIntentTask.getId();
         }
@@ -127,6 +127,42 @@ public abstract class Task {
         private final ScriptExecution mScriptExecution;
 
         public RunningTask(ScriptExecution scriptExecution) {
+            mScriptExecution = scriptExecution;
+        }
+
+        public ScriptExecution getScriptExecution() {
+            return mScriptExecution;
+        }
+
+        @Override
+        public String getName() {
+            return mScriptExecution.getSource().getName();
+        }
+
+        @Override
+        public String getDesc() {
+            return mScriptExecution.getSource().toString();
+        }
+
+        @Override
+        public void cancel() {
+            ScriptEngine engine = mScriptExecution.getEngine();
+            if (engine != null) {
+                engine.forceStop();
+            }
+        }
+
+        @Override
+        public String getEngineName() {
+            return mScriptExecution.getSource().getEngineName();
+        }
+    }
+
+    //    远程脚本
+    public static class RemoteTask extends Task {
+        private final ScriptExecution mScriptExecution;
+
+        public RemoteTask(ScriptExecution scriptExecution) {
             mScriptExecution = scriptExecution;
         }
 

@@ -206,6 +206,7 @@
     <string name="text_single_build_clean_mode">单文件打包清爽模式</string>
     <string name="summary_single_build_clean_mode">开启后单文件打包时不保存打包配置文件,及不保存启动图和应用图标等所有配置信息</string>
     <string name="text_directory">文件夹</string>
+    <string name="text_remote_directory">我的脚本</string>
     <string name="text_file">文件</string>
     <string name="text_tutorial">教程</string>
     <string name="text_community">社区</string>
@@ -315,6 +316,8 @@
     <string name="text_select_icon">选择图标</string>
     <string name="text_use_android_n_shortcut">添加到安卓7.0 Shortcut</string>
     <string name="text_login_succeed">登录成功</string>
+    <string name="text_get_script_list_success">获取脚本列表成功</string>
+    <string name="text_get_script_list_fail">获取脚本列表失败</string>
     <string name="text_login_fail">登录失败</string>
     <string name="text_reset_password">重置密码</string>
     <string name="text_logining">登录中</string>
@@ -353,6 +356,7 @@
     <string name="text_send">发送</string>
     <string name="text_timed_task">定时任务</string>
     <string name="text_running_task">运行中脚本</string>
+    <string name="text_remote_task">远程脚本</string>
     <string name="text_done">完成</string>
     <string name="text_disposable_task">只运行一次</string>
     <string name="text_daily_task">每天运行</string>
@@ -529,7 +533,7 @@
     <string name="text_go_to_open">去打开</string>
     <string name="text_home">主页</string>
     <string name="text_management">管理</string>
-    <string name="text_document">文档</string>
+    <string name="text_document">远程</string>
     <string name="text_open_usb_debug">打开USB调试</string>
     <string name="text_scan_qr">扫码</string>
     <string name="text_connect_failed">连接失败：%s, 请检查电脑防火墙是否放行9317端口，是否在同一局域网中，VS CODE插件是否已开启服务…</string>
@@ -562,4 +566,5 @@
     <string name="text_reconnecting">正在重新连接</string>
     <string name="text_connecting">正在连接</string>
     <string name="text_handshake_failed">握手失败</string>
+    <string name="text_remote">远程</string>
 </resources>

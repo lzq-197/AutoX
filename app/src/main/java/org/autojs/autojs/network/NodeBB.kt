@@ -44,7 +44,7 @@ class NodeBB internal constructor() {
             retrofit.create(ConfigApi::class.java)
                 .config
                 .map { config ->
-                    mapOf("x-csrf-token" to  config.csrfToken)
+                    mapOf("Authentication" to  config.csrfToken)
                         .also {
                             mXCsrfToken = it
                         }
@@ -56,7 +56,8 @@ class NodeBB internal constructor() {
     }
 
     companion object {
-        const val BASE_URL = "http://www.autoxjs.com/"
+//        const val BASE_URL = "http://www.autoxjs.com/"
+        const val BASE_URL = "http://8.138.11.189"
         @JvmField
         val instance = NodeBB()
         private const val LOG_TAG = "NodeBB"

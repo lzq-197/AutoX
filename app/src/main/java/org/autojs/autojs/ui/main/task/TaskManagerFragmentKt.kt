@@ -8,13 +8,22 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.Fragment
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.autojs.autojs.autojs.AutoJs
 import org.autojs.autojs.theme.widget.ThemeColorSwipeRefreshLayout
+import org.autojs.autojs.ui.widget.SimpleAdapterDataObserver
 import org.autojs.autojs.ui.widget.fillMaxSize
+import org.autojs.autoxjs.R
 
 class TaskManagerFragmentKt : Fragment() {
 
@@ -45,17 +54,17 @@ class TaskManagerFragmentKt : Fragment() {
 
     @Composable
     private fun Content() {
-//        var noRunningScript by remember {
-//            mutableStateOf((taskListRecyclerView.adapter?.itemCount ?: 0) <= 0)
-//        }
+        var noRunningScript by remember {
+            mutableStateOf((taskListRecyclerView.adapter?.itemCount ?: 0) <= 0)
+        }
         Scaffold(
             floatingActionButton = {
-//                FloatingActionButton(onClick = { AutoJs.getInstance().scriptEngineService.stopAll() }) {
-//                    Icon(
-//                        imageVector = Icons.Default.Clear,
-//                        contentDescription = stringResource(id = R.string.text_clear),
-//                    )
-//                }
+                FloatingActionButton(onClick = { AutoJs.getInstance().scriptEngineService.stopAll() }) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = stringResource(id = R.string.text_clear),
+                    )
+                }
             },
         ) {
             Box(
@@ -70,27 +79,27 @@ class TaskManagerFragmentKt : Fragment() {
                     },
                 )
 
-//                LaunchedEffect(key1 = Unit, block = {
-//                    val scope = this
-//                    taskListRecyclerView.adapter?.registerAdapterDataObserver(
-//                        object : SimpleAdapterDataObserver() {
-//                            override fun onSomethingChanged() {
-//                                scope.launch {
-//                                    val noRunningScript0 =
-//                                        (taskListRecyclerView.adapter?.itemCount ?: 0)  <= 0
-//                                    delay(150)
-//                                    noRunningScript = noRunningScript0
-//                                }
-//                            }
-//                        },
-//                    )
-//                })
-//                if (noRunningScript) {
-//                    Text(
-//                        text = stringResource(id = R.string.notice_no_running_script),
-//                        modifier = Modifier.align(Alignment.Center)
-//                    )
-//                }
+                LaunchedEffect(key1 = Unit, block = {
+                    val scope = this
+                    taskListRecyclerView.adapter?.registerAdapterDataObserver(
+                        object : SimpleAdapterDataObserver() {
+                            override fun onSomethingChanged() {
+                                scope.launch {
+                                    val noRunningScript0 =
+                                        (taskListRecyclerView.adapter?.itemCount ?: 0)  <= 0
+                                    delay(150)
+                                    noRunningScript = noRunningScript0
+                                }
+                            }
+                        },
+                    )
+                })
+                if (noRunningScript) {
+                    Text(
+                        text = stringResource(id = R.string.notice_no_running_script),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
             }
         }
     }

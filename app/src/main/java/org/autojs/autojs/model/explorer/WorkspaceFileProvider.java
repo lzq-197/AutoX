@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.Objects;
 
 import io.reactivex.Observable;
 import io.reactivex.Single;
@@ -83,7 +84,7 @@ public class WorkspaceFileProvider extends ExplorerFileProvider {
         }
         String pathOfAsset = SAMPLE_PATH + pathOfSample;
         return Observable.just(pathOfAsset)
-                .flatMap(path -> Observable.fromArray(mAssetManager.list(path)))
+                .flatMap(path -> Observable.fromArray(Objects.requireNonNull(mAssetManager.list(path))))
                 .map(child -> {
                     PFile file = new PFile(new File(directory, child).getPath());
                     if (file.exists()) {

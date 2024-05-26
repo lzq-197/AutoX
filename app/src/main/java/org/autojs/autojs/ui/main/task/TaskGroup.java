@@ -147,4 +147,50 @@ public abstract class TaskGroup implements Parent<Task> {
             return -1;
         }
     }
+    /**
+     * 远程脚本
+     * */
+    public static class RemoteTaskGroup extends TaskGroup {
+
+        public RemoteTaskGroup(Context context) {
+            super(context.getString(R.string.text_remote_task));
+            refresh();
+        }
+
+        @Override
+        public void refresh() {
+            Collection<ScriptExecution> executions = AutoJs.getInstance().getScriptEngineService().getScriptExecutions();
+            mTasks.clear();
+            for (ScriptExecution execution : executions) {
+                mTasks.add(new Task.RemoteTask(execution));
+            }
+        }
+
+        public void removeAll(){
+            mTasks.clear();
+        }
+
+        public int addTask(ScriptExecution engine) {
+            int pos = mTasks.size();
+            mTasks.add(new Task.RemoteTask(engine));
+            return pos;
+        }
+
+        public int removeTask(ScriptExecution engine) {
+            int i = indexOf(engine);
+            if (i >= 0) {
+                mTasks.remove(i);
+            }
+            return i;
+        }
+
+        public int indexOf(ScriptExecution engine) {
+            for (int i = 0; i < mTasks.size(); i++) {
+                if (((Task.RemoteTask) mTasks.get(i)).getScriptExecution().equals(engine)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+    }
 }

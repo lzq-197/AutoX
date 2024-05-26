@@ -300,6 +300,10 @@ dependencies {
     implementation("io.noties.markwon:core:4.6.2")
     implementation("androidx.viewpager2:viewpager2:1.1.0-beta01")
     implementation("io.coil-kt:coil-compose:2.0.0-rc03")
+    // 数据库加密
+    implementation("net.zetetic:android-database-sqlcipher:4.5.0")
+    implementation("cn.hutool:hutool-all:5.8.21")
+    implementation("org.bouncycastle:bcprov-jdk15to18:1.76")
 }
 
 fun copyTemplateToAPP(isDebug: Boolean, to: File) {

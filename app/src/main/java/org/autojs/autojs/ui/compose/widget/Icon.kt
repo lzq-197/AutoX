@@ -1,5 +1,6 @@
 package org.autojs.autojs.ui.compose.widget
 
+import androidx.compose.foundation.clickable
 import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier

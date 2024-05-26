@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              xmlns:tools="http://schemas.android.com/tools"
-              android:id="@+id/item"
-              android:layout_width="match_parent"
-              android:layout_height="wrap_content"
-              android:background="@android:color/white"
-              android:clickable="true"
-              android:foreground="?selectableItemBackground"
-              android:orientation="horizontal"
-              android:padding="8dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:clickable="true"
+    android:foreground="?selectableItemBackground"
+    android:orientation="horizontal"
+    android:padding="8dp">
 
     <TextView
         android:id="@+id/first_char"
@@ -21,7 +22,7 @@
         android:gravity="center"
         android:textColor="@android:color/white"
         android:textSize="24sp"
-        tools:text="J"/>
+        tools:text="J" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -40,7 +41,7 @@
             android:maxLines="1"
             android:textColor="#484C4F"
             android:textSize="14sp"
-            tools:text="正在运行的服务"/>
+            tools:text="正在运行的服务" />
 
         <TextView
             android:id="@+id/desc"
@@ -53,10 +54,20 @@
             android:maxLines="1"
             android:textColor="#9DA0A2"
             android:textSize="11sp"
-            tools:text="18 KB"/>
+            tools:text="18 KB" />
 
     </LinearLayout>
 
+    <ImageView
+        android:id="@+id/start"
+        android:layout_width="36dp"
+        android:layout_height="match_parent"
+        android:background="?selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="6dp"
+        android:src="@drawable/ic_run_gray"
+        app:tint="#A9AAAB" />
 
     <ImageView
         android:id="@+id/stop"
@@ -64,9 +75,11 @@
         android:layout_height="match_parent"
         android:background="?selectableItemBackgroundBorderless"
         android:clickable="true"
+        android:focusable="true"
         android:padding="6dp"
         android:src="@drawable/ic_close_gray600_48dp"
-        android:tint="#A9AAAB"/>
+        app:tint="#A9AAAB" />
+
 
 </LinearLayout>
 

@@ -1,10 +1,15 @@
 package org.autojs.autojs.ui.main.task;
 
+import static com.stardust.autojs.runtime.ScriptRuntime.getApplicationContext;
+
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.drawable.GradientDrawable;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
+
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,17 +17,27 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bignerdranch.expandablerecyclerview.ChildViewHolder;
 import com.bignerdranch.expandablerecyclerview.ExpandableRecyclerAdapter;
 import com.bignerdranch.expandablerecyclerview.ParentViewHolder;
+import com.stardust.autojs.ScriptEngineService;
+import com.stardust.autojs.engine.ScriptEngineManager;
+import com.stardust.autojs.execution.ExecutionConfig;
+import com.stardust.autojs.execution.RemoteScriptExecution;
 import com.stardust.autojs.execution.ScriptExecution;
 import com.stardust.autojs.execution.ScriptExecutionListener;
+import com.stardust.autojs.execution.ScriptExecutionTask;
 import com.stardust.autojs.execution.SimpleScriptExecutionListener;
 import com.stardust.autojs.script.AutoFileSource;
+import com.stardust.autojs.script.ScriptSource;
+import com.stardust.autojs.script.StringScriptSource;
 import com.stardust.autojs.workground.WrapContentLinearLayoutManager;
 import com.yqritc.recyclerviewflexibledivider.HorizontalDividerItemDecoration;
 
+import org.autojs.autojs.autojs.ScriptExecutionGlobalListener;
+import org.autojs.autojs.network.ScriptService;
 import org.autojs.autoxjs.R;
 import org.autojs.autojs.autojs.AutoJs;
 import org.autojs.autojs.storage.database.ModelChange;
@@ -34,11 +49,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import androidx.recyclerview.widget.ThemeColorRecyclerView;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.schedulers.Schedulers;
 
 /**
  * Created by Stardust on 2017/3/24.
@@ -52,6 +69,7 @@ public class TaskListRecyclerView extends ThemeColorRecyclerView {
     private final List<TaskGroup> mTaskGroups = new ArrayList<>();
     private TaskGroup.RunningTaskGroup mRunningTaskGroup;
     private TaskGroup.PendingTaskGroup mPendingTaskGroup;
+    private TaskGroup.RemoteTaskGroup mRemoteTaskGroup;
     private Adapter mAdapter;
     private Disposable mTimedTaskChangeDisposable;
     private Disposable mIntentTaskChangeDisposable;
@@ -110,6 +128,9 @@ public class TaskListRecyclerView extends ThemeColorRecyclerView {
         mTaskGroups.add(mRunningTaskGroup);
         mPendingTaskGroup = new TaskGroup.PendingTaskGroup(getContext());
         mTaskGroups.add(mPendingTaskGroup);
+        // 添加远程脚本
+        mRemoteTaskGroup = new TaskGroup.RemoteTaskGroup(getContext());
+        mTaskGroups.add(mRemoteTaskGroup);
         mAdapter = new Adapter(mTaskGroups);
         setAdapter(mAdapter);
     }
@@ -194,14 +215,43 @@ public class TaskListRecyclerView extends ThemeColorRecyclerView {
         @Override
         public void onBindParentViewHolder(@NonNull TaskGroupViewHolder viewHolder, int parentPosition, @NonNull TaskGroup taskGroup) {
             viewHolder.title.setText(taskGroup.getTitle());
+            initRemoteGroup(viewHolder);
         }
 
         @Override
         public void onBindChildViewHolder(@NonNull TaskViewHolder viewHolder, int parentPosition, int childPosition, @NonNull Task task) {
             viewHolder.bind(task);
         }
-    }
 
+        @SuppressLint("CheckResult")
+        private void initRemoteGroup(@NonNull TaskGroupViewHolder itemView) {
+            TextView title = itemView.title;
+            itemView.clickIcon = itemView.itemView.findViewById(R.id.async);
+            if (title.getText().toString().equals("远程脚本")) {
+                itemView.clickIcon.setOnClickListener(view -> {
+                    ScriptService.getInstance().list()
+                            .subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe(script -> {
+                                        Toast.makeText(getApplicationContext(), R.string.text_get_script_list_success, Toast.LENGTH_SHORT).show();
+                                    }
+                                    , error -> {
+                                        Toast.makeText(getApplicationContext(), R.string.text_get_script_list_fail, Toast.LENGTH_SHORT).show();
+                                    });
+                    // 从本地数据库中取出token值
+                    // 对token使用私钥解密
+                    // 解密之后请求远程购买的脚本，这里只是返回信息没有实际的脚本内容
+                    // 当点击运行脚本之后才去获取真正的脚本到本地的字符流中
+                    // 调用autojs引擎执行脚本
+                    generatorRemoteScript();
+                    Log.i(LOG_TAG, "TaskGroupViewHolder: 点击了同步图标");
+                });
+            } else {
+                itemView.clickIcon.setVisibility(View.GONE);
+            }
+        }
+
+    }
 
     class TaskViewHolder extends ChildViewHolder<Task> {
 
@@ -236,10 +286,24 @@ public class TaskListRecyclerView extends ThemeColorRecyclerView {
         }
 
 
+        @SuppressLint("NonConstantResourceId")
         @OnClick(R.id.stop)
         void stop() {
             if (mTask != null) {
                 mTask.cancel();
+            }
+        }
+
+        @SuppressLint("NonConstantResourceId")
+        @OnClick(R.id.start)
+        void start() {
+            if (mTask != null) {
+                Log.i(LOG_TAG, "onItemClick: 点击了运行远程脚本");
+                Task.RemoteTask task = (Task.RemoteTask) mTask;
+                ScriptExecution scriptExecution = task.getScriptExecution();
+                ScriptEngineService scriptEngineService = AutoJs.getInstance().getScriptEngineService();
+                scriptEngineService.execute(scriptExecution.getSource(), scriptExecution.getListener(), scriptExecution.getConfig());
+                Log.i(LOG_TAG, "onItemClick: 脚本已在运行中！！！");
             }
         }
 
@@ -252,13 +316,16 @@ public class TaskListRecyclerView extends ThemeColorRecyclerView {
                         .extra(extra, task.getId())
                         .start();
             }
+            if (mTask instanceof Task.RemoteTask) {
+                Log.i(LOG_TAG, "onItemClick: 点击了远程脚本");
+            }
         }
     }
 
-    private class TaskGroupViewHolder extends ParentViewHolder<TaskGroup, Task> {
-
+    private static class TaskGroupViewHolder extends ParentViewHolder<TaskGroup, Task> {
         TextView title;
         ImageView icon;
+        ImageView clickIcon;
 
         TaskGroupViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -277,6 +344,31 @@ public class TaskListRecyclerView extends ThemeColorRecyclerView {
         public void onExpansionToggled(boolean expanded) {
             icon.setRotation(expanded ? -90 : 0);
         }
+
+
+    }
+
+
+    private void generatorRemoteScript() {
+        int remoteTaskGroupPos = getRemoteTaskGroupPos();
+        int size = mRemoteTaskGroup.getChildList().size();
+        mRemoteTaskGroup.mTasks.clear();
+        mAdapter.notifyChildRangeRemoved(remoteTaskGroupPos, 0, size);
+        ScriptSource scriptSource = new StringScriptSource("抖音助手v1.0", "toast('这是一个远程脚本')");
+        ScriptExecutionGlobalListener listener = new ScriptExecutionGlobalListener();
+        ExecutionConfig executionConfig = new ExecutionConfig();
+        ScriptExecutionTask scriptExecutionTask = new ScriptExecutionTask(scriptSource, listener, executionConfig);
+        int i = mRemoteTaskGroup.addTask(new RemoteScriptExecution(new ScriptEngineManager(getContext()), scriptExecutionTask));
+        mAdapter.notifyChildInserted(remoteTaskGroupPos, i);
+    }
+
+    private int getRemoteTaskGroupPos() {
+        for (int i = 0; i < mTaskGroups.size(); i++) {
+            if (mTaskGroups.get(i).getTitle().equals(getContext().getString(R.string.text_remote_task))) {
+                return i;
+            }
+        }
+        return -1;
     }
 
 }

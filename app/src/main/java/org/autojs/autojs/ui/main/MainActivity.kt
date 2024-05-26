@@ -114,6 +114,7 @@ class MainActivity : FragmentActivity() {
         TimedTaskScheduler.ensureCheckTaskWorks(application)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (drawerState?.isOpen == true) {
             scope?.launch { drawerState?.close() }
@@ -433,14 +434,14 @@ fun TopAppBarMenu(
         NewFile(context, scriptListFragment, onDismissRequest)
         ImportFile(context, scriptListFragment, onDismissRequest)
         NewProject(context, scriptListFragment, onDismissRequest)
-//        DropdownMenuItem(onClick = { /*TODO*/ }) {
-//            MyIcon(
-//                painter = painterResource(id = R.drawable.ic_timed_task),
-//                contentDescription = stringResource(id = R.string.text_switch_timed_task_scheduler)
-//            )
-//            Spacer(modifier = Modifier.width(8.dp))
-//            Text(text = stringResource(id = R.string.text_switch_timed_task_scheduler))
-//        }
+        DropdownMenuItem(onClick = { /*TODO*/ }) {
+            MyIcon(
+                painter = painterResource(id = R.drawable.ic_timed_task),
+                contentDescription = stringResource(id = R.string.text_switch_timed_task_scheduler)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = stringResource(id = R.string.text_switch_timed_task_scheduler))
+        }
     }
 }
 

@@ -3,6 +3,7 @@ package org.autojs.autojs.ui.main.scripts
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -69,7 +70,7 @@ class ScriptListFragment : Fragment() {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     floatingActionButton = {
-//                        FloatingButton()
+                        FloatingButton()
                     },
                 ) {
                     AndroidView(
@@ -127,6 +128,9 @@ class ScriptListFragment : Fragment() {
         item {
             NewProject(context)
         }
+        item {
+            RemoteScript(context)
+        }
     }
 
     @OptIn(
@@ -148,6 +152,29 @@ class ScriptListFragment : Fragment() {
             labelContent = { Text(text = stringResource(id = R.string.text_project)) },
         ) {
             Icon(painterResource(id = R.drawable.ic_project2), null)
+        }
+    }
+
+    @OptIn(
+        ExperimentalMaterialApi::class
+    )
+    @Composable
+    private fun RemoteScript(context: Context) {
+        FabWithLabel(
+            onClick = {
+                val explorerView = this@ScriptListFragment.explorerView
+                Log.i(TAG, "RemoteScript: $explorerView")
+//                ProjectConfigActivity_.intent(context)
+//                    .extra(
+//                        ProjectConfigActivity.EXTRA_PARENT_DIRECTORY,
+//                        explorerView.currentPage?.path
+//                    )
+//                    .extra(ProjectConfigActivity.EXTRA_NEW_PROJECT, true)
+//                    .start()
+            },
+            labelContent = { Text(text = stringResource(id = R.string.text_remote)) },
+        ) {
+            Icon(painterResource(id = R.drawable.ic_arrow_drop_down_async), null)
         }
     }
 

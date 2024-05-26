@@ -2,18 +2,29 @@ package org.autojs.autojs.ui.widget
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
 import android.view.KeyEvent
+import android.webkit.JsResult
+import android.webkit.ValueCallback
+import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import com.google.gson.Gson
 import org.autojs.autojs.theme.widget.ThemeColorSwipeRefreshLayout
+import org.autojs.autojs.tool.DatabaseHelper
+import org.autojs.autojs.ui.main.scripts.MyJavaScriptInterface
+import kotlin.reflect.jvm.internal.impl.load.kotlin.JvmType
+
+
 
 class SwipeRefreshWebView : ThemeColorSwipeRefreshLayout {
 
     val webView = WebView(context)
-
+    val jsInterface = MyJavaScriptInterface(context)
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
@@ -25,6 +36,12 @@ class SwipeRefreshWebView : ThemeColorSwipeRefreshLayout {
             setup()
         }
         addView(webView)
+        webView.addJavascriptInterface(jsInterface, "Android")
+        jsInterface.webView = webView
+        setOnRefreshListener {
+            // 执行网页重新加载操作
+            webView.reload()
+        }
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -57,7 +74,7 @@ class SwipeRefreshWebView : ThemeColorSwipeRefreshLayout {
             blockNetworkLoads = false;
             setNeedInitialFocus(true);
             saveFormData = true;
-            cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK //使用缓存
+            cacheMode = WebSettings.LOAD_NO_CACHE //使用缓存
 //            setAppCacheEnabled(false);
             domStorageEnabled = true
             databaseEnabled = true   //开启 database storage API 功能
@@ -71,11 +88,18 @@ class SwipeRefreshWebView : ThemeColorSwipeRefreshLayout {
                 WebSettings.MIXED_CONTENT_ALWAYS_ALLOW;
         }
         webViewClient = object : WebViewClient() {
+            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                // 页面开始加载时的处理
+            }
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 isRefreshing = false
             }
+            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                // 处理页面跳转
+                return true
+            }
         }
     }
-
 }

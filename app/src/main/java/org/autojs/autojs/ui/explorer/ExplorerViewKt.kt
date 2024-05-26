@@ -59,6 +59,8 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
     private var currentPageState = ExplorerPageState()
     private var dirSortMenuShowing = false
     private var directorySpanSize1 = 2
+
+
     val currentPage get() = currentPageState.currentPage
 
     constructor(context: Context?) : super(context) {
@@ -69,7 +71,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         init()
     }
 
-    fun setRootPage(page: ExplorerPage?) {
+    private fun setRootPage(page: ExplorerPage?) {
         pageStateHistory.clear()
         setCurrentPageState(ExplorerPageState(page))
         loadItemList()
@@ -127,7 +129,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         enterChildPage(currentPage)
     }
 
-    fun enterChildPage(childPage: ExplorerPage) {
+    private fun enterChildPage(childPage: ExplorerPage) {
         val root = currentPageState.currentPage!!.toScriptFile()
         var dir = childPage.toScriptFile()
         val dirs = Stack<ScriptFile>()
@@ -171,7 +173,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         reload()
     }
 
-    fun reload() {
+    private fun reload() {
         loadItemList()
     }
 
@@ -238,6 +240,14 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
                 isRefreshing = false
                 post { explorerItemListView!!.scrollToPosition(currentPageState.scrollY) }
             }
+        loadRemoteItem()
+    }
+
+    @SuppressLint("CheckResult","NotifyDataSetChanged")
+    private fun loadRemoteItem() {
+        explorerItemList.add(RemoteFileItem())
+        // 更新列表视图
+        explorerAdapter.notifyDataSetChanged()
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -266,10 +276,12 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
                         explorerAdapter.notifyItemChanged(item, i)
                     }
                 }
+
                 ExplorerChangeEvent.CREATE -> {
                     explorerItemList.insertAtFront(event.newItem)
                     explorerAdapter.notifyItemInserted(event.newItem, 0)
                 }
+
                 ExplorerChangeEvent.REMOVE -> {
                     i = explorerItemList.remove(item)
                     if (i >= 0) {
@@ -294,32 +306,40 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
             R.id.rename -> ScriptOperations(context, this, currentPage)
                 .rename(selectedItem as ExplorerFileItem?)
                 .subscribe(Observers.emptyObserver())
+
             R.id.delete -> ScriptOperations(context, this, currentPage)
                 .delete(selectedItem!!.toScriptFile())
+
             R.id.run_repeatedly -> {
                 ScriptLoopDialog(context, selectedItem!!.toScriptFile())
                     .show()
                 notifyOperated()
             }
+
             R.id.create_shortcut -> ScriptOperations(context, this, currentPage)
                 .createShortcut(selectedItem!!.toScriptFile())
+
             R.id.open_by_other_apps -> {
                 openByOtherApps(selectedItem!!.toScriptFile())
                 notifyOperated()
             }
+
             R.id.send -> {
                 send(selectedItem!!.toScriptFile())
                 notifyOperated()
             }
+
             R.id.timed_task -> {
                 ScriptOperations(context, this, currentPage)
                     .timedTask(selectedItem!!.toScriptFile())
                 notifyOperated()
             }
+
             R.id.action_build_apk -> {
                 BuildActivity.start(context, selectedItem!!.path)
                 notifyOperated()
             }
+
             R.id.action_sort_by_date -> sort(ExplorerItemList.SORT_TYPE_DATE, dirSortMenuShowing)
             R.id.action_sort_by_type -> sort(ExplorerItemList.SORT_TYPE_TYPE, dirSortMenuShowing)
             R.id.action_sort_by_name -> sort(ExplorerItemList.SORT_TYPE_NAME, dirSortMenuShowing)
@@ -336,6 +356,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
                         ).show()
                     }, Observers.toastMessage())
             }
+
             else -> return false
         }
         return true
@@ -379,6 +400,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         parent: ViewGroup?,
         viewType: Int
     ): BindableViewHolder<Any> {
+        Log.i(LOG_TAG, "onCreateViewHolder: $viewType")
         return when (viewType) {
             VIEW_TYPE_ITEM -> {
                 ExplorerItemViewHolder(
@@ -389,6 +411,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
                     )
                 )
             }
+
             VIEW_TYPE_PAGE -> {
                 ExplorerPageViewHolder(
                     inflater.inflate(
@@ -398,6 +421,17 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
                     )
                 )
             }
+
+//            VIEW_TYPE_REMOTE_PAGE -> {
+//                RemotePageViewHolder(
+//                    inflater.inflate(
+//                        R.layout.script_file_list_remote,
+//                        parent,
+//                        false
+//                    )
+//                )
+//            }
+
             else -> {
                 CategoryViewHolder(
                     inflater.inflate(
@@ -410,6 +444,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         }
     }
 
+    // 本地资源适配器 添加适配远程文件
     private inner class ExplorerAdapter : RecyclerView.Adapter<BindableViewHolder<Any>>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BindableViewHolder<Any> {
@@ -471,6 +506,94 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
                 count += explorerItemList.itemCount()
             }
             return count + 2
+        }
+    }
+
+    // 远程文件适配器
+    @SuppressLint("NonConstantResourceId")
+    inner class RemoteViewHolder internal constructor(itemView: View) :
+        BindableViewHolder<Any>(itemView) {
+        @JvmField
+        @BindView(R.id.name)
+        var name: TextView? = null
+
+        @JvmField
+        @BindView(R.id.first_char)
+        var firstChar: TextView? = null
+
+        @JvmField
+        @BindView(R.id.desc)
+        var desc: TextView? = null
+
+        @JvmField
+        @BindView(R.id.more)
+        var options: View? = null
+
+        @JvmField
+        @BindView(R.id.edit)
+        var edit: View? = null
+
+        @JvmField
+        @BindView(R.id.run)
+        var run: View? = null
+        var firstCharBackground: GradientDrawable
+        private var explorerItem: ExplorerItem? = null
+
+        override fun bind(item: Any, position: Int) {
+            if (item !is ExplorerItem) return
+            explorerItem = item
+            name!!.text = ExplorerViewHelper.getDisplayName(item)
+            desc!!.text = PFiles.getHumanReadableSize(item.size)
+            firstChar!!.text = ExplorerViewHelper.getIconText(item)
+            firstCharBackground.setColor(ExplorerViewHelper.getIconColor(item))
+            edit!!.visibility = if (item.isEditable) VISIBLE else GONE
+            run!!.visibility = if (item.isExecutable) VISIBLE else GONE
+        }
+
+        @OnClick(R.id.item)
+        fun onItemClick() {
+            onItemClickListener?.invoke(itemView, explorerItem)
+            notifyOperated()
+        }
+
+        @OnClick(R.id.run)
+        fun run() {
+            run(ScriptFile(explorerItem!!.path))
+            notifyOperated()
+        }
+
+        @OnClick(R.id.edit)
+        fun edit() {
+            edit(context, ScriptFile(explorerItem!!.path))
+            notifyOperated()
+        }
+
+        @OnClick(R.id.more)
+        fun showOptionMenu() {
+            selectedItem = explorerItem
+            val popupMenu = PopupMenu(context, options)
+            popupMenu.inflate(R.menu.menu_script_options)
+            val menu = popupMenu.menu
+            if (!explorerItem!!.isExecutable) {
+                menu.removeItem(R.id.run_repeatedly)
+                menu.removeItem(R.id.more)
+            }
+            if (!explorerItem!!.canDelete()) {
+                menu.removeItem(R.id.delete)
+            }
+            if (!explorerItem!!.canRename()) {
+                menu.removeItem(R.id.rename)
+            }
+            if (explorerItem !is ExplorerSampleItem) {
+                menu.removeItem(R.id.reset)
+            }
+            popupMenu.setOnMenuItemClickListener(this@ExplorerViewKt)
+            popupMenu.show()
+        }
+
+        init {
+            ButterKnife.bind(this, itemView)
+            firstCharBackground = firstChar!!.background as GradientDrawable
         }
     }
 
@@ -557,6 +680,95 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         init {
             ButterKnife.bind(this, itemView)
             firstCharBackground = firstChar!!.background as GradientDrawable
+        }
+
+
+    }
+    // 远程文件夹
+    @SuppressLint("NonConstantResourceId")
+    inner class RemotePageViewHolder internal constructor(itemView: View) :
+        BindableViewHolder<Any>(itemView) {
+
+        @JvmField
+        @BindView(R.id.title)
+        var title: TextView? = null
+
+        @JvmField
+        @BindView(R.id.sort)
+        var sort: ImageView? = null
+
+        @JvmField
+        @BindView(R.id.order)
+        var sortOrder: ImageView? = null
+
+        @JvmField
+        @BindView(R.id.back)
+        var goBack: ImageView? = null
+
+        @JvmField
+        @BindView(R.id.collapse)
+        var arrow: ImageView? = null
+        private var isDir = false
+        override fun bind(isDirCategory: Any, position: Int) {
+            if (isDirCategory !is Boolean) return
+            title!!.setText(if (isDirCategory) R.string.text_directory else R.string.text_file)
+            isDir = isDirCategory
+            if (isDirCategory && canGoBack()) {
+                goBack!!.visibility = VISIBLE
+            } else {
+                goBack!!.visibility = GONE
+            }
+            if (isDirCategory) {
+                arrow!!.rotation = if (currentPageState.dirsCollapsed) -90f else 0.toFloat()
+                sortOrder!!.setImageResource(if (explorerItemList.isDirSortedAscending) R.drawable.ic_ascending_order else R.drawable.ic_descending_order)
+            } else {
+                arrow!!.rotation = if (currentPageState.filesCollapsed) -90f else 0.toFloat()
+                sortOrder!!.setImageResource(if (explorerItemList.isFileSortedAscending) R.drawable.ic_ascending_order else R.drawable.ic_descending_order)
+            }
+        }
+
+        @OnClick(R.id.order)
+        fun changeSortOrder() {
+            if (isDir) {
+                sortOrder!!.setImageResource(if (explorerItemList.isDirSortedAscending) R.drawable.ic_ascending_order else R.drawable.ic_descending_order)
+                explorerItemList.isDirSortedAscending = !explorerItemList.isDirSortedAscending
+                sort(explorerItemList.dirSortType, isDir)
+            } else {
+                sortOrder!!.setImageResource(if (explorerItemList.isFileSortedAscending) R.drawable.ic_ascending_order else R.drawable.ic_descending_order)
+                explorerItemList.isFileSortedAscending = !explorerItemList.isFileSortedAscending
+                sort(explorerItemList.fileSortType, isDir)
+            }
+        }
+
+        @OnClick(R.id.sort)
+        fun showSortOptions() {
+            val popupMenu = PopupMenu(context, sort)
+            popupMenu.inflate(R.menu.menu_sort_options)
+            popupMenu.setOnMenuItemClickListener(this@ExplorerViewKt)
+            dirSortMenuShowing = isDir
+            popupMenu.show()
+        }
+
+        @OnClick(R.id.back)
+        fun back() {
+            if (canGoBack()) {
+                goBack()
+            }
+        }
+
+        @SuppressLint("NotifyDataSetChanged")
+        @OnClick(R.id.title_container)
+        fun collapseOrExpand() {
+            if (isDir) {
+                currentPageState.dirsCollapsed = !currentPageState.dirsCollapsed
+            } else {
+                currentPageState.filesCollapsed = !currentPageState.filesCollapsed
+            }
+            explorerAdapter.notifyDataSetChanged()
+        }
+
+        init {
+            ButterKnife.bind(this, itemView)
         }
     }
 
@@ -690,6 +902,7 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         }
     }
 
+
     private class ExplorerPageState {
         var currentPage: ExplorerPage? = null
         var dirsCollapsed = false
@@ -706,10 +919,14 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
         private const val LOG_TAG = "ExplorerView"
         const val VIEW_TYPE_ITEM = 0
         const val VIEW_TYPE_PAGE = 1
+        const val VIEW_TYPE_REMOTE_PAGE = 2
 
         //category是类别，也即"文件", "文件夹"那两个
         protected const val VIEW_TYPE_CATEGORY = 2
         private const val positionOfCategoryDir = 0
+
+        // 远程文件夹
+        private const val remoteCategoryDir = 1
     }
 
     override fun onGlobalFocusChanged(oldView: View, newView: View) {
@@ -722,4 +939,13 @@ open class ExplorerViewKt : ThemeColorSwipeRefreshLayout, OnRefreshListener,
             return@setOnKeyListener false
         }
     }
+    // 添加远程文件的数据模型 RemoteFileItem
+
+    // 在ExplorerViewKt中添加打开远程文件的函数
+    private fun openRemoteFile(remoteFileItem: RemoteFileItem) {
+        // 打开远程文件的逻辑，例如使用WebView加载远程文件地址
+        Log.i(LOG_TAG, "openRemoteFile: ")
+    }
+
+
 }

@@ -59,6 +59,17 @@
     </LinearLayout>
 
     <ImageView
+        android:id="@+id/async"
+        android:layout_width="36dp"
+        android:layout_height="match_parent"
+        android:background="?selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:focusable="true"
+        android:padding="6dp"
+        android:src="@drawable/ic_arrow_drop_down_async"
+        app:tint="#A9AAAB" />
+
+    <ImageView
         android:id="@+id/start"
         android:layout_width="36dp"
         android:layout_height="match_parent"
@@ -68,6 +79,7 @@
         android:padding="6dp"
         android:src="@drawable/ic_run_gray"
         app:tint="#A9AAAB" />
+
 
     <ImageView
         android:id="@+id/stop"

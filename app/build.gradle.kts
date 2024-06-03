@@ -10,7 +10,7 @@ plugins {
 
 //val SupportLibVersion = "28.0.0"
 
-val propFile: File = File("E:/资料/jks/autojs-app/sign.properties");
+val propFile: File = File("F:/androidProject/sign.properties.t");
 val properties = Properties()
 if (propFile.exists()) {
     propFile.inputStream().reader().use {
@@ -53,8 +53,8 @@ android {
         disable.addAll(listOf("MissingTranslation", "ExtraTranslation"))
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     composeOptions {
         kotlinCompilerExtensionVersion = compose_version

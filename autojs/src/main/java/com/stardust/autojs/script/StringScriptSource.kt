@@ -6,7 +6,6 @@ import java.io.Reader
  * Created by Stardust on 2017/4/2.
  */
 class StringScriptSource : JavaScriptSource {
-
     override var script: String
         private set
 

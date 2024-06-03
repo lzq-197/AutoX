@@ -1,5 +1,6 @@
 package org.autojs.autojs.network
 
+import R2.id.chain
 import android.content.Context
 import android.util.Log
 import com.google.gson.GsonBuilder
@@ -7,19 +8,24 @@ import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterF
 import com.jakewharton.retrofit2.adapter.rxjava2.HttpException
 import com.jakewharton.retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import io.reactivex.Observable
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import org.autojs.autoxjs.R
+import okhttp3.Request
+import okhttp3.Response
 import org.autojs.autojs.network.api.ConfigApi
 import org.autojs.autojs.network.util.WebkitCookieManagerProxy
+import org.autojs.autoxjs.R
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
+
 
 /**
  * Created by Stardust on 2017/9/20.
  */
 class NodeBB internal constructor() {
     private var mXCsrfToken: Map<String, String>? = null
+    private var userToken: String = String()
     val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
         .addConverterFactory(
@@ -34,20 +40,29 @@ class NodeBB internal constructor() {
         .client(
             OkHttpClient.Builder()
                 .cookieJar(WebkitCookieManagerProxy())
+                .addInterceptor(Interceptor { chain ->
+                    val originalRequest: Request = chain.request()
+                    // 设置请求头
+                    val newRequest: Request = originalRequest.newBuilder()
+                        .header("Authorization", "Bearer $userToken")
+                        .build()
+                    chain.proceed(newRequest)
+                })
                 .build()
         )
         .build()
+
+    fun setUserToken(token: String) {
+        this.userToken = token
+    }
+
     val xCsrfToken: Observable<Map<String, String>>
         get() = if (mXCsrfToken != null) {
             Observable.just(mXCsrfToken)
         } else {
-            retrofit.create(ConfigApi::class.java)
-                .config
-                .map { config ->
-                    mapOf("Authentication" to  config.csrfToken)
-                        .also {
-                            mXCsrfToken = it
-                        }
+            Observable.just(mapOf("Authentication" to this.userToken))
+                .doOnNext { token ->
+                    mXCsrfToken = token
                 }
         }
 
@@ -56,8 +71,9 @@ class NodeBB internal constructor() {
     }
 
     companion object {
-//        const val BASE_URL = "http://www.autoxjs.com/"
-        const val BASE_URL = "http://8.138.11.189"
+        //        const val BASE_URL = "http://www.autoxjs.com/"
+        const val BASE_URL = "http://8.138.11.189:9998"
+
         @JvmField
         val instance = NodeBB()
         private const val LOG_TAG = "NodeBB"

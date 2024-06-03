@@ -162,8 +162,11 @@ public abstract class Task {
     public static class RemoteTask extends Task {
         private final ScriptExecution mScriptExecution;
 
-        public RemoteTask(ScriptExecution scriptExecution) {
+        private Long id;
+
+        public RemoteTask(ScriptExecution scriptExecution, Long id) {
             mScriptExecution = scriptExecution;
+            this.id = id;
         }
 
         public ScriptExecution getScriptExecution() {
@@ -191,6 +194,14 @@ public abstract class Task {
         @Override
         public String getEngineName() {
             return mScriptExecution.getSource().getEngineName();
+        }
+
+        public Long getId() {
+            return id;
+        }
+
+        public void setId(Long id) {
+            this.id = id;
         }
     }
 }

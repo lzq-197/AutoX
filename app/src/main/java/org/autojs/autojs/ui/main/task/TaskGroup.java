@@ -3,8 +3,11 @@ package org.autojs.autojs.ui.main.task;
 import android.content.Context;
 
 import com.bignerdranch.expandablerecyclerview.model.Parent;
+import com.stardust.autojs.execution.RemoteScriptExecution;
 import com.stardust.autojs.execution.ScriptExecution;
 
+import org.autojs.autojs.network.ScriptService;
+import org.autojs.autojs.network.entity.script.DyScript;
 import org.autojs.autoxjs.R;
 import org.autojs.autojs.autojs.AutoJs;
 import org.autojs.autojs.timing.IntentTask;
@@ -14,6 +17,8 @@ import org.autojs.autojs.timing.TimedTaskManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by Stardust on 2017/11/28.
@@ -147,9 +152,10 @@ public abstract class TaskGroup implements Parent<Task> {
             return -1;
         }
     }
+
     /**
      * 远程脚本
-     * */
+     */
     public static class RemoteTaskGroup extends TaskGroup {
 
         public RemoteTaskGroup(Context context) {
@@ -159,21 +165,26 @@ public abstract class TaskGroup implements Parent<Task> {
 
         @Override
         public void refresh() {
-            Collection<ScriptExecution> executions = AutoJs.getInstance().getScriptEngineService().getScriptExecutions();
             mTasks.clear();
-            for (ScriptExecution execution : executions) {
-                mTasks.add(new Task.RemoteTask(execution));
+            // 获取当前登录之后缓存过的脚本
+            Set<Map.Entry<Long, RemoteScriptExecution>> entries = ScriptService.remoteScriptExecutionMap.entrySet();
+            for (Map.Entry<Long, RemoteScriptExecution> entry : entries) {
+                RemoteScriptExecution value = entry.getValue();
+                mTasks.add(new Task.RemoteTask(value,value.getScriptId()));
             }
         }
 
-        public void removeAll(){
+        public void removeAll() {
             mTasks.clear();
         }
 
         public int addTask(ScriptExecution engine) {
-            int pos = mTasks.size();
-            mTasks.add(new Task.RemoteTask(engine));
-            return pos;
+            if (engine instanceof RemoteScriptExecution remote) {
+                int pos = mTasks.size();
+                mTasks.add(new Task.RemoteTask(remote, remote.getScriptId()));
+                return pos;
+            }
+            return mTasks.size() - 1;
         }
 
         public int removeTask(ScriptExecution engine) {

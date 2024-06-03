@@ -18,9 +18,20 @@ public class RemoteScriptExecution extends ScriptExecution.AbstractScriptExecuti
     private ScriptEngine mScriptEngine;
     private ScriptEngineManager mScriptEngineManager;
 
-    public RemoteScriptExecution(ScriptEngineManager manager, ScriptExecutionTask task) {
+    private Long scriptId;
+
+    public Long getScriptId() {
+        return scriptId;
+    }
+
+    public void setScriptId(Long scriptId) {
+        this.scriptId = scriptId;
+    }
+
+    public RemoteScriptExecution(ScriptEngineManager manager, ScriptExecutionTask task, Long scriptId) {
         super(task);
         mScriptEngineManager = manager;
+        this.scriptId = scriptId;
     }
 
     @Override

@@ -13,7 +13,13 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.Toast
 import com.google.gson.Gson
+import com.stardust.autojs.execution.ExecutionConfig
+import com.stardust.autojs.script.ScriptSource
+import com.stardust.autojs.script.StringScriptSource
 import net.sqlcipher.database.SQLiteDatabase
+import org.autojs.autojs.autojs.AutoJs
+import org.autojs.autojs.autojs.ScriptExecutionGlobalListener
+import org.autojs.autojs.network.NodeBB
 import org.autojs.autojs.tool.AESEncryptionUtil
 import org.autojs.autojs.tool.DatabaseHelper
 import org.autojs.autojs.tool.KeyUtil
@@ -81,7 +87,6 @@ class MyJavaScriptInterface(val context: Context) {
             .post {
                 // 在主线程中执行调用 JavaScript 的代码
                 webView?.evaluateJavascript(javascriptCommand, null)
-//                webView?.loadUrl("javascript:JSMethod($javascriptCommand)")
             }
     }
 
@@ -107,7 +112,6 @@ class MyJavaScriptInterface(val context: Context) {
     @SuppressLint("HardwareIds")
     @JavascriptInterface
     fun loginDevice(message: String) {
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         Log.i(LOG_TAG, "设备ID: $message")
         val gson = Gson()
         val fromJson = gson.fromJson(message, JavaScriptResult::class.java)
@@ -116,15 +120,21 @@ class MyJavaScriptInterface(val context: Context) {
             val generatorKey = KeyUtil.generatorKey()
             val decryptedString = AESEncryptionUtil.decrypt(token.toString(), generatorKey)
             Log.d("AES", "Decrypted String: $decryptedString")
+            if (db !== null && db!!.isOpen) {
+                var values = ContentValues()
+                values.put("id", 1)
+                values.put("login_device", androidId)
+                values.put("login_token", decryptedString)
+                val result = db!!.insertWithOnConflict(
+                    "device_login",
+                    null,
+                    values,
+                    SQLiteDatabase.CONFLICT_REPLACE
+                )
+                Toast.makeText(context, "设备登录成功！！！", Toast.LENGTH_SHORT).show()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-        if (db !== null && db!!.isOpen) {
-            var values = ContentValues()
-            values.put("login_device", androidId)
-            val selection = "id = ?"
-            val selectionArgs = arrayOf("1")
-            db!!.update("device_login", values, selection, selectionArgs)
         }
     }
 
@@ -136,111 +146,115 @@ class MyJavaScriptInterface(val context: Context) {
     }
 
     @JavascriptInterface
-    fun notRegisterDevice() {
-        Toast.makeText(context, "您的设备暂未激活：$androidId 请联系管理员！！！", Toast.LENGTH_SHORT)
-            .show()
-    }
-
-    @JavascriptInterface
     fun initDb(message: String) {
         Log.i(LOG_TAG, "初始化数据库: $message")
-        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        val gson = Gson()
-        val fromJson = gson.fromJson(message, JavaScriptResult::class.java)
-        val token = fromJson.data["token"]
-
+        Toast.makeText(context, "正在初始化数据库中请稍后。。。", Toast.LENGTH_SHORT).show()
         db = databaseHelper.openDatabase(message)
         if (db !== null && db!!.isOpen) {
-            webView?.post {
-                callJavaScriptFunction("initDb", "")
-            }
+            Toast.makeText(context, "数据库初始化成功！！！", Toast.LENGTH_SHORT).show()
         }
     }
 
+    /**
+     * 保存请求需要的token
+     * */
     @JavascriptInterface
-    fun getPublicKey(message: String) {
-        Log.i(LOG_TAG, "获取公钥: $message")
+    fun saveToken(message: String) {
+        Log.i(LOG_TAG, "同步登录信息: $message")
+        Toast.makeText(context, "正在同步登录信息。。。", Toast.LENGTH_SHORT).show()
         val gson = Gson()
         val fromJson = gson.fromJson(message, JavaScriptResult::class.java)
-        val get = fromJson.data["key"]
-        DatabaseHelper.publicKey = get.toString()
-        db = databaseHelper.openDatabase(fromJson.data["pwd"].toString())
+        val token = fromJson.data["token"]
+        DatabaseHelper.TOKEN = token.toString();
+        NodeBB.instance.setUserToken(DatabaseHelper.TOKEN)
+        // 保存本次配置信息存入数据库中
         if (db !== null && db!!.isOpen) {
+            val columns = arrayOf("id", "user_id", "token")
+            val selection = "id = ?" // 查询条件
             val selectionArgs = arrayOf("1")
+            val groupBy: String? = null
+            val having: String? = null
+            val orderBy: String? = null
             var cursor: Cursor =
-                db!!.rawQuery("select * from app_config where id = ?", selectionArgs)
+                db!!.query(
+                    "device_login",
+                    columns,
+                    selection,
+                    selectionArgs,
+                    groupBy,
+                    having,
+                    orderBy
+                )
             if (cursor.moveToNext()) {
                 Toast.makeText(context, "存在历史记录正在更新中。。。", Toast.LENGTH_SHORT)
                     .show()
-                DatabaseHelper.publicKey = cursor.getString(1)
                 val values = ContentValues()
-                values.put("public_key", DatabaseHelper.publicKey)
+                values.put("id", 1)
+                values.put("user_id", 1)
+                values.put("token", DatabaseHelper.TOKEN)
                 val selection = "id = ?"
                 val selectionArgs = arrayOf("1")
                 try {
                     db!!.beginTransaction();
-                    db!!.update("app_config", values, selection, selectionArgs)
+                    db!!.update("device_login", values, selection, selectionArgs)
                     db!!.setTransactionSuccessful()
                 } finally {
                     db!!.endTransaction();
                 }
             } else {
                 val values = ContentValues()
-                values.put("public_key", message)
                 values.put("id", 1)
+                values.put("user_id", 1)
+                values.put("token", DatabaseHelper.TOKEN)
                 try {
                     db!!.beginTransaction();
-                    db!!.insert("app_config", "script", values)
+                    db!!.insert("device_login", null, values)
                     db!!.setTransactionSuccessful()
                 } finally {
                     db!!.endTransaction();
                 }
             }
         } else {
+            Toast.makeText(context, "数据库未初始化正在初始化", Toast.LENGTH_SHORT)
+                .show()
             db = databaseHelper.openDatabase(message)
+            saveToken(message)
         }
     }
 
-    // 获取私钥
+    /**
+     * 保存存储的Key
+     * */
     @JavascriptInterface
-    fun getPrivateKey(message: String) {
-        Log.i(LOG_TAG, "获取私钥: $message")
-        if (db != null && db!!.isOpen) {
+    fun saveStoreKey(message: String) {
+        Log.i(LOG_TAG, "初始化本地存储库: $message")
+        try {
+            DatabaseHelper.STORE_KEY = message
+            Toast.makeText(context, "正在初始化数据库中请稍后。。。", Toast.LENGTH_SHORT)
+                .show()
+        } catch (e: Exception) {
+            TODO("Not yet implemented")
+        }
+    }
+
+    /**
+     * 保存存储的Key
+     * */
+    @JavascriptInterface
+    fun setSecretKey(message: String) {
+        Log.i(LOG_TAG, "初始化本地存储库: $message")
+        Toast.makeText(context, "正在初始化本地存储库", Toast.LENGTH_SHORT).show()
+        try {
             val gson = Gson()
             val fromJson = gson.fromJson(message, JavaScriptResult::class.java)
-            val privateKey = fromJson.data["key"]
-            val selectionArgs = arrayOf("1")
-            var cursor: Cursor =
-                db!!.rawQuery("select * from app_config where id = ?", selectionArgs)
-            if (cursor.moveToNext()) {
-                val values = ContentValues()
-                values.put("private_key", privateKey.toString())
-                val selection = "id = ?"
-                val selectionArgs = arrayOf("1")
-                try {
-                    db!!.beginTransaction();
-                    db!!.update("app_config", values, selection, selectionArgs)
-                    db!!.setTransactionSuccessful()
-                } finally {
-                    db!!.endTransaction();
-                }
-            } else {
-                val values = ContentValues()
-                values.put("private_key", privateKey.toString())
-                values.put("public_key", DatabaseHelper.publicKey)
-                values.put("id", 1)
-                try {
-                    db!!.beginTransaction();
-                    db!!.insert("app_config", null, values)
-                    db!!.setTransactionSuccessful()
-                } finally {
-                    db!!.endTransaction();
-                }
-            }
-            Toast.makeText(context, "获取私钥成功！", Toast.LENGTH_SHORT).show()
+            val storeKey = fromJson.data["secretKey"]
+            DatabaseHelper.SECRET_KEY = storeKey.toString();
+            Toast.makeText(context, "正在初始化数据库中请稍后。。。$storeKey", Toast.LENGTH_SHORT)
+                .show()
+        } catch (e: Exception) {
+            TODO("Not yet implemented")
         }
     }
-
 
     @JavascriptInterface
     fun saveScriptConfig(message: String) {
@@ -248,31 +262,72 @@ class MyJavaScriptInterface(val context: Context) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
         val gson = Gson()
         val fromJson = gson.fromJson(message, JavaScriptResult::class.java)
-        val scriptName = fromJson.data["script_name"]
-        val scriptFunction = fromJson.data["script_name"]
-        val arguments = fromJson.data["arguments"]
-        val serial_number = fromJson.data["arguments"]
-
-        if (db != null && db!!.isOpen) {
-            val selectionArgs = arrayOf(scriptName)
+        val scriptName = fromJson.data
+        val gson1 = Gson()
+        val toJson = gson1.toJson(scriptName["config"])
+        val script = "var storage = storages.create(\"njC9gIPIwOGm\");" +
+                "storage.put(\"scriptConfig\"," + toJson + ");"
+        val scriptSource: ScriptSource =
+            StringScriptSource("初始化配置文件", script)
+        val listener = ScriptExecutionGlobalListener()
+        val executionConfig = ExecutionConfig()
+        val scriptEngineService = AutoJs.getInstance().scriptEngineService
+        val execute = scriptEngineService.execute(
+            scriptSource,
+            listener,
+            executionConfig
+        )
+        // 保存本次配置信息存入数据库中
+        if (db !== null && db!!.isOpen) {
+            val columns = arrayOf("script_id", "user_id", "config")
+            val selection = "id = ?" // 查询条件
+            val selectionArgs = arrayOf("1")
+            val groupBy: String? = null
+            val having: String? = null
+            val orderBy: String? = null
             var cursor: Cursor =
-                db!!.rawQuery("select * from script where script_name = ?", selectionArgs)
-            // 存在脚本则进行更新
+                db!!.query(
+                    "script_config",
+                    columns,
+                    selection,
+                    selectionArgs,
+                    groupBy,
+                    having,
+                    orderBy
+                )
             if (cursor.moveToNext()) {
+                Toast.makeText(context, "存在历史记录正在更新中。。。", Toast.LENGTH_SHORT)
+                    .show()
                 val values = ContentValues()
-                values.put("script_function", scriptFunction.toString())
-                values.put("arguments", arguments.toString())
-                values.put("serial_number", arguments.toString())
+                values.put("script_id", 1)
+                values.put("user_id", 1)
+                values.put("config", toJson)
                 val selection = "id = ?"
                 val selectionArgs = arrayOf("1")
                 try {
                     db!!.beginTransaction();
-                    db!!.update("app_config", values, selection, selectionArgs)
+                    db!!.update("script_config", values, selection, selectionArgs)
+                    db!!.setTransactionSuccessful()
+                } finally {
+                    db!!.endTransaction();
+                }
+            } else {
+                val values = ContentValues()
+                values.put("script_id", 1)
+                values.put("user_id", 1)
+                values.put("config", toJson)
+                try {
+                    db!!.beginTransaction();
+                    db!!.insert("script_config", null, values)
                     db!!.setTransactionSuccessful()
                 } finally {
                     db!!.endTransaction();
                 }
             }
+        } else {
+            Toast.makeText(context, "数据库未初始化正在初始化中请稍后重试。。。", Toast.LENGTH_SHORT)
+                .show()
+            db = databaseHelper.openDatabase(message)
         }
     }
 
